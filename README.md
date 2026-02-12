@@ -72,7 +72,7 @@ docker run -d \
   -v pihole_dnsmasq:/etc/dnsmasq.d \
   -v lancache_sidecar_data:/var/lib/lancache-sidecar \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  ghcr.io/YOURORG/lancache-pihole-sidecar:latest
+  ghcr.io/oct8l/lancache-pihole-sidecar:latest
 ```
 
 Notes:
@@ -119,12 +119,32 @@ Template file:
 
 - `unraid/templates/lancache-pihole-sidecar.xml`
 
-Before publishing, replace placeholder values in the XML:
+Current template endpoints:
 
-- `ghcr.io/YOURORG/lancache-pihole-sidecar:latest`
-- `https://github.com/YOURORG/lancache-pihole-sidecar`
-- `https://forums.unraid.net/topic/REPLACE_ME-support-lancache-pihole-sidecar/`
-- `https://raw.githubusercontent.com/YOURORG/...` (for `TemplateURL` and `Icon`)
+- `ghcr.io/oct8l/lancache-pihole-sidecar:latest`
+- `https://github.com/oct8l/lancache-pihole-sidecar`
+- `https://raw.githubusercontent.com/oct8l/lancache-pihole-sidecar/main/...`
+
+## Image Publishing (GHCR)
+
+GitHub Actions workflow:
+
+- `.github/workflows/docker-publish.yml`
+
+What it does:
+
+- Triggers on pushes to `main`/`master`, tags like `v1.2.3`, and manual dispatch.
+- Builds multi-arch image (`linux/amd64`, `linux/arm64`).
+- Pushes tags to `ghcr.io/oct8l/lancache-pihole-sidecar`:
+  - branch tags
+  - tag refs
+  - commit SHA
+  - `latest` on default branch
+
+Before first push from Actions:
+
+- In GitHub repo settings, set Actions `Workflow permissions` to `Read and write`.
+- After first publish, set package visibility to `Public` in GHCR package settings if you want pulls without auth.
 
 ## Quick Test (one-shot)
 
