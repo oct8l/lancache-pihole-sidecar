@@ -15,6 +15,8 @@ Automatically keeps Pi-hole LANCache DNS records in sync using the uklans/cache-
 This container only manages one file: /etc/dnsmasq.d/99-lancache-sidecar.conf[br]
 Rollback is safe: set MODE=rollback (or ENABLE=false) to remove only sidecar-managed records.[br]
 [br]
+Set PIHOLE_CONTAINER_NAME for automatic pihole-FTL restart after updates (requires docker.sock mount).[br]
+[br]
 For Pi-hole v6, make sure FTLCONF_misc_etc_dnsmasq_d=true is set on the Pi-hole container.
   </Overview>
   <Category>Network:DNS Network:Tools</Category>
@@ -25,18 +27,20 @@ For Pi-hole v6, make sure FTLCONF_misc_etc_dnsmasq_d=true is set on the Pi-hole 
   <PostArgs/>
   <CPUset/>
   <DateInstalled>1700000000</DateInstalled>
-  <Requires>Pi-hole must use the same host path for /etc/dnsmasq.d.</Requires>
+  <Requires>Pi-hole must use the same host path for /etc/dnsmasq.d. docker.sock is required only for automatic/custom reload commands.</Requires>
 
   <Config Name="Pi-hole dnsmasq Path" Target="/etc/dnsmasq.d" Default="/mnt/user/appdata/pihole/dnsmasq.d" Mode="rw" Description="Host path shared with your Pi-hole /etc/dnsmasq.d mount." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/pihole/dnsmasq.d</Config>
   <Config Name="Sidecar Data Path" Target="/var/lib/lancache-sidecar" Default="/mnt/user/appdata/lancache-pihole-sidecar" Mode="rw" Description="Persistent working data (cache-domains clone)." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/lancache-pihole-sidecar</Config>
+  <Config Name="Docker Socket Path" Target="/var/run/docker.sock" Default="/var/run/docker.sock" Mode="rw" Description="Optional. Needed for PIHOLE_CONTAINER_NAME or RELOAD_COMMAND that uses docker exec." Type="Path" Display="advanced" Required="false" Mask="false">/var/run/docker.sock</Config>
 
   <Config Name="LANCache IP(s)" Target="LANCACHE_IP" Default="" Mode="" Description="Required. One or more LANCache server IPs (comma-separated)." Type="Variable" Display="always" Required="true" Mask="false"></Config>
+  <Config Name="Pi-hole Container Name" Target="PIHOLE_CONTAINER_NAME" Default="" Mode="" Description="Optional. If set, sidecar auto-restarts pihole-FTL via docker exec after changes." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
   <Config Name="Mode" Target="MODE" Default="run" Mode="" Description="run=normal loop, rollback=remove managed file and exit." Type="Variable" Display="advanced" Required="true" Mask="false">run</Config>
   <Config Name="Enable Sync" Target="ENABLE" Default="true" Mode="" Description="false removes sidecar-managed records (if REMOVE_ON_DISABLE=true)." Type="Variable" Display="advanced" Required="true" Mask="false">true</Config>
   <Config Name="Update Interval (Seconds)" Target="UPDATE_INTERVAL_SECONDS" Default="21600" Mode="" Description="How often to sync cache-domains and reconcile Pi-hole file." Type="Variable" Display="advanced" Required="true" Mask="false">21600</Config>
   <Config Name="Domain Groups" Target="DOMAIN_GROUPS" Default="all" Mode="" Description="Comma-separated group names from cache_domains.json, or 'all'." Type="Variable" Display="advanced" Required="true" Mask="false">all</Config>
   <Config Name="One Shot" Target="ONESHOT" Default="false" Mode="" Description="true runs once and exits." Type="Variable" Display="advanced" Required="true" Mask="false">false</Config>
-  <Config Name="Reload Command" Target="RELOAD_COMMAND" Default="" Mode="" Description="Optional command run when records change or are removed. Example: docker exec pihole pihole restartdns reload-lists" Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="Reload Command" Target="RELOAD_COMMAND" Default="" Mode="" Description="Optional custom command run when records change/removed. Overrides PIHOLE_CONTAINER_NAME when set." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
   <Config Name="Output File" Target="OUTPUT_FILE" Default="/etc/dnsmasq.d/99-lancache-sidecar.conf" Mode="" Description="Managed dnsmasq file path inside container." Type="Variable" Display="advanced-hide" Required="true" Mask="false">/etc/dnsmasq.d/99-lancache-sidecar.conf</Config>
   <Config Name="Remove On Disable" Target="REMOVE_ON_DISABLE" Default="true" Mode="" Description="When ENABLE=false, remove managed file." Type="Variable" Display="advanced-hide" Required="true" Mask="false">true</Config>
   <Config Name="Strict Groups" Target="STRICT_GROUPS" Default="true" Mode="" Description="Fail when DOMAIN_GROUPS includes unknown entries." Type="Variable" Display="advanced-hide" Required="true" Mask="false">true</Config>

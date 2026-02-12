@@ -12,7 +12,7 @@ This project is env-var driven only (no separate config file).
 - It generates entries like `address=/domain/LANCACHE_IP` into one managed file.
 - Managed file defaults to: `/etc/dnsmasq.d/99-lancache-sidecar.conf`.
 - It only rewrites the file when content actually changes.
-- If `RELOAD_COMMAND` is set, it runs that command after writes/removals.
+- After writes/removals, it runs reload if configured via `PIHOLE_CONTAINER_NAME` or `RELOAD_COMMAND`.
 
 Because it uses a dedicated managed file, rollback is straightforward: remove that file and reload Pi-hole.
 
@@ -39,7 +39,11 @@ Common:
   - Comma-separated group names from `cache_domains.json`
   - `all` uses every group
 - `RELOAD_COMMAND` (default: empty)
-  - Optional command to reload Pi-hole DNS after change
+  - Optional custom command run after sidecar writes/removals
+  - Overrides `PIHOLE_CONTAINER_NAME` when both are set
+- `PIHOLE_CONTAINER_NAME` (default: empty)
+  - If set, sidecar runs `docker exec <name> sh -c 'service pihole-FTL restart || /etc/init.d/pihole-FTL restart'`
+  - Requires mounting `/var/run/docker.sock` into the sidecar
 - `OUTPUT_FILE` (default: `/etc/dnsmasq.d/99-lancache-sidecar.conf`)
 - `REMOVE_ON_DISABLE` (default: `true`)
 - `STRICT_GROUPS` (default: `true`)
@@ -67,8 +71,8 @@ docker run -d \
   --name lancache-pihole-sidecar \
   --restart unless-stopped \
   -e LANCACHE_IP=192.168.1.50 \
+  -e PIHOLE_CONTAINER_NAME=pihole \
   -e UPDATE_INTERVAL_SECONDS=21600 \
-  -e RELOAD_COMMAND='docker exec pihole pihole restartdns reload-lists' \
   -v pihole_dnsmasq:/etc/dnsmasq.d \
   -v lancache_sidecar_data:/var/lib/lancache-sidecar \
   -v /var/run/docker.sock:/var/run/docker.sock \
@@ -77,10 +81,12 @@ docker run -d \
 
 Notes:
 
-- `RELOAD_COMMAND` is optional, but recommended for immediate effect.
-- If you use the docker-exec reload approach, mount `/var/run/docker.sock` and ensure the Pi-hole container name matches.
+- Set `PIHOLE_CONTAINER_NAME` for built-in FTL restart after sidecar changes.
+- `RELOAD_COMMAND` is optional and overrides `PIHOLE_CONTAINER_NAME` when you need custom behavior.
+- If using either method above, mount `/var/run/docker.sock` and ensure the Pi-hole container name matches.
 - If you prefer, omit `RELOAD_COMMAND` and restart Pi-hole DNS manually after changes.
 - On Pi-hole v6, ensure `FTLCONF_misc_etc_dnsmasq_d=true` on the Pi-hole container so custom files in `/etc/dnsmasq.d` are loaded.
+- Pi-hole docs note `reloaddns` does not re-read `*.conf`; this sidecar defaults to restarting `pihole-FTL` when `PIHOLE_CONTAINER_NAME` is set.
 
 ## Rollback (Return Pi-hole to Normal)
 
@@ -90,7 +96,7 @@ Run the sidecar once with:
 
 - `MODE=rollback`
 - same `/etc/dnsmasq.d` mount
-- same optional `RELOAD_COMMAND`
+- same optional `PIHOLE_CONTAINER_NAME` or `RELOAD_COMMAND`
 
 This removes only `99-lancache-sidecar.conf`, reloads DNS (if configured), then exits.
 

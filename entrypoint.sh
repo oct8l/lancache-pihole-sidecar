@@ -18,6 +18,7 @@ CACHE_DOMAINS_DIR="${CACHE_DOMAINS_DIR:-/var/lib/lancache-sidecar/cache-domains}
 
 OUTPUT_FILE="${OUTPUT_FILE:-/etc/dnsmasq.d/99-lancache-sidecar.conf}"
 RELOAD_COMMAND="${RELOAD_COMMAND:-}"
+PIHOLE_CONTAINER_NAME="${PIHOLE_CONTAINER_NAME:-}"
 
 SCRIPT_NAME="lancache-pihole-sidecar"
 
@@ -79,6 +80,57 @@ json_file() {
   printf '%s/cache_domains.json' "$CACHE_DOMAINS_DIR"
 }
 
+list_available_groups() {
+  local json="$1"
+  jq -r '
+    if (type == "object") and has("cache_domains") and ((.cache_domains | type) == "array") then
+      .cache_domains[]? | .name // empty
+    elif type == "array" then
+      .[]? | .name // empty
+    elif type == "object" then
+      keys[]
+    else
+      empty
+    end
+  ' "$json"
+}
+
+group_exists() {
+  local json="$1"
+  local group="$2"
+  jq -e --arg group "$group" '
+    if (type == "object") and has("cache_domains") and ((.cache_domains | type) == "array") then
+      any(.cache_domains[]?; (.name // "") == $group)
+    elif type == "array" then
+      any(.[]?; (.name // "") == $group)
+    elif type == "object" then
+      has($group)
+    else
+      false
+    end
+  ' "$json" >/dev/null
+}
+
+domain_files_for_group() {
+  local json="$1"
+  local group="$2"
+  jq -r --arg group "$group" '
+    if (type == "object") and has("cache_domains") and ((.cache_domains | type) == "array") then
+      .cache_domains[]?
+      | select((.name // "") == $group)
+      | .domain_files[]?
+    elif type == "array" then
+      .[]?
+      | select((.name // "") == $group)
+      | .domain_files[]?
+    elif type == "object" then
+      .[$group][]?
+    else
+      empty
+    end
+  ' "$json"
+}
+
 collect_groups() {
   local json
   json="$(json_file)"
@@ -89,7 +141,7 @@ collect_groups() {
   fi
 
   if [[ "$(to_lower "$DOMAIN_GROUPS")" == "all" ]]; then
-    jq -r 'keys[]' "$json"
+    list_available_groups "$json"
     return 0
   fi
 
@@ -100,7 +152,7 @@ collect_groups() {
     group="$(trim "$raw")"
     [[ -z "$group" ]] && continue
 
-    if jq -e --arg k "$group" 'has($k)' "$json" >/dev/null; then
+    if group_exists "$json" "$group"; then
       printf '%s\n' "$group"
     elif is_true "$STRICT_GROUPS"; then
       err "Requested DOMAIN_GROUPS entry '$group' does not exist in cache_domains.json"
@@ -116,8 +168,9 @@ collect_domain_files() {
   json="$(json_file)"
 
   while IFS= read -r group; do
-    jq -r --arg group "$group" '.[$group][]' "$json"
-  done
+    [[ -z "$group" ]] && continue
+    domain_files_for_group "$json" "$group"
+  done | sort -u
 }
 
 valid_domain_characters() {
@@ -248,17 +301,25 @@ generate_dnsmasq_file() {
 }
 
 run_reload_command() {
-  if [[ -z "$RELOAD_COMMAND" ]]; then
-    log "RELOAD_COMMAND is not set. Pi-hole DNS reload is skipped."
+  if [[ -n "$RELOAD_COMMAND" ]]; then
+    log "Running RELOAD_COMMAND"
+    if ! sh -c "$RELOAD_COMMAND"; then
+      err "RELOAD_COMMAND failed"
+      return 1
+    fi
     return 0
   fi
 
-  log "Running RELOAD_COMMAND"
-  if ! sh -c "$RELOAD_COMMAND"; then
-    err "RELOAD_COMMAND failed"
-    return 1
+  if [[ -n "$PIHOLE_CONTAINER_NAME" ]]; then
+    log "Restarting Pi-hole FTL in container: $PIHOLE_CONTAINER_NAME"
+    if ! docker exec "$PIHOLE_CONTAINER_NAME" sh -c 'service pihole-FTL restart || /etc/init.d/pihole-FTL restart'; then
+      err "Automatic FTL restart failed for container '$PIHOLE_CONTAINER_NAME'"
+      return 1
+    fi
+    return 0
   fi
 
+  log "No reload method configured. Set PIHOLE_CONTAINER_NAME or RELOAD_COMMAND."
   return 0
 }
 
