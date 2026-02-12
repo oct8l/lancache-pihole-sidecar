@@ -113,6 +113,19 @@ With `REMOVE_ON_DISABLE=true` (default), the sidecar removes its managed file an
 docker build -t lancache-pihole-sidecar:local .
 ```
 
+## Unraid CA Template
+
+Template file:
+
+- `unraid/templates/lancache-pihole-sidecar.xml`
+
+Before publishing, replace placeholder values in the XML:
+
+- `ghcr.io/YOURORG/lancache-pihole-sidecar:latest`
+- `https://github.com/YOURORG/lancache-pihole-sidecar`
+- `https://forums.unraid.net/topic/REPLACE_ME-support-lancache-pihole-sidecar/`
+- `https://raw.githubusercontent.com/YOURORG/...` (for `TemplateURL` and `Icon`)
+
 ## Quick Test (one-shot)
 
 ```bash

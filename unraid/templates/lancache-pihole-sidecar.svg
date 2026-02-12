@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>LANCache Pi-hole Sidecar</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f766e"/>
+      <stop offset="100%" stop-color="#166534"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <circle cx="256" cy="220" r="130" fill="#f8fafc" opacity="0.95"/>
+  <path d="M148 220h216M256 112v216" stroke="#0f172a" stroke-width="28" stroke-linecap="round"/>
+  <rect x="126" y="324" width="260" height="74" rx="20" fill="#0f172a"/>
+  <text x="256" y="372" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="700" fill="#f8fafc">LC</text>
+</svg>
