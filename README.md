@@ -147,11 +147,6 @@ What it does:
   - commit SHA
   - `latest` on default branch
 
-Before first push from Actions:
-
-- In GitHub repo settings, set Actions `Workflow permissions` to `Read and write`.
-- After first publish, set package visibility to `Public` in GHCR package settings if you want pulls without auth.
-
 ## Quick Test (one-shot)
 
 ```bash
